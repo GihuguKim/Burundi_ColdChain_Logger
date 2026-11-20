@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burundi Medical Cold-Chain Logistics Telemetry Platform</title>
+    <style>
+        :root {
+            --bg-color: #030712;
+            --panel-bg: rgba(17, 24, 39, 0.85);
+            --panel-border: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-crimson: #ef4444;
+            --accent-amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            letter-spacing: 0.05em;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent-emerald);
+            color: var(--accent-emerald);
+        }
+
+        .status-badge.offline {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+            main {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel-header {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 0.5rem;
+        }
+
+        #map-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #030712;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #111827;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: pointer;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        input, select, textarea {
+            background: #090d16;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 0.6rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .alert-banner {
+            padding: 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: none;
+        }
+
+        .alert-banner.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--accent-crimson);
+            color: #fca5a5;
+        }
+
+        .alert-banner.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--accent-emerald);
+            color: #6ee7b7;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: #374151;
+            color: var(--text-primary);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 250px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        th {
+            background: #090d16;
+            color: var(--text-secondary);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .status-pill {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-pill.optimal {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-emerald);
+        }
+
+        .status-pill.excursion {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-crimson);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>Burundi Cold-Chain Logistics Telemetry</h1>
+            <p>Republic of Burundi — Ministry of Health Telemetry Node #BDI-0301-LOG</p>
+        </div>
+        <div id="network-status" class="status-badge">
+            <span class="status-dot"></span>
+            <span id="network-text">ONLINE</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- LEFT PANEL: CANVAS MAP -->
+        <section class="panel">
+            <div class="panel-header">Satellite Reconnaissance Telemetry Map</div>
+            <div id="map-container">
+                <canvas id="telemetryMap"></canvas>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: LOGGING FORM & DATABASE EXPORT -->
+        <section class="panel">
+            <div class="panel-header">Cold-Chain Sensor Logging Node</div>
+
+            <div id="alert-banner" class="alert-banner"></div>
+
+            <form id="logger-form" class="form-grid">
+                <div class="form-group">
+                    <label for="station">Clinic / Station</label>
+                    <select id="station" required>
+                        <option value="">Select Clinic...</option>
+                        <option value="Bujumbura Hub">Bujumbura Main Hub</option>
+                        <option value="Gitega Capital">Gitega Central Hub</option>
+                        <option value="Magara Clinic">Magara Clinic</option>
+                        <option value="Rumonge Hosp.">Rumonge Hospital</option>
+                        <option value="Nyanza-Lac">Nyanza-Lac Outpost</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="batchId">Batch ID</label>
+                    <input type="text" id="batchId" placeholder="e.g. VAC-2026-BDI-09" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature (°C)</label>
+                    <input type="number" step="0.1" id="temperature" placeholder="+2.0 to +8.0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="operatorNote">Operator Note</label>
+                    <input type="text" id="operatorNote" placeholder="e.g. Unit 3 Nominal Check">
+                </div>
+
+                <div class="form-group full-width btn-group">
+                    <button type="submit" class="btn-primary">Commit Telemetry Log</button>
+                    <button type="button" id="export-btn" class="btn-secondary">Export Signed Ministry Manifest (JSON)</button>
+                </div>
+            </form>
+
+            <div class="panel-header">Persisted IndexedDB Records</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time (UTC)</th>
+                            <th>Station</th>
+                            <th>Batch ID</th>
+                            <th>Temp</th>
+                            <th>Classification</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body">
+                        <!-- IndexedDB records render here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        /**
+         * 1. GEOGRAPHIC COORDINATES & PROJECTION ENGINE
+         */
+        const minLon = 28.95, maxLon = 30.90;
+        const minLat = -4.55, maxLat = -2.25;
+
+        const burundiBorder = [
+            [29.03, -2.78], [29.35, -2.32], [29.95, -2.35],
+            [30.52, -2.42], [30.85, -3.02], [30.62, -3.55],
+            [30.18, -3.95], [29.75, -4.45], [29.34, -4.35],
+            [29.42, -3.95], [29.36, -3.38], [29.22, -3.28],
+            [29.03, -2.78]
+        ];
+
+        const stations = [
+            { name: "Bujumbura Hub", lon: 29.36, lat: -3.38, status: 'UNLOGGED', temp: null },
+            { name: "Gitega Capital", lon: 29.92, lat: -3.43, status: 'UNLOGGED', temp: null },
+            { name: "Magara Clinic", lon: 29.39, lat: -3.72, status: 'UNLOGGED', temp: null },
+            { name: "Rumonge Hosp.", lon: 29.44, lat: -3.97, status: 'UNLOGGED', temp: null },
+            { name: "Nyanza-Lac", lon: 29.60, lat: -4.34, status: 'UNLOGGED', temp: null }
+        ];
+
+        function projectLatLon(lon, lat, width, height, padding = 40) {
+            const x = ((lon - minLon) / (maxLon - minLon)) * (width - 2 * padding) + padding;
+            const y = (1 - ((lat - minLat) / (maxLat - minLat))) * (height - 2 * padding) + padding;
+            return { x, y };
+        }
+
+        /**
+         * 2. CANVAS RENDER ENGINE
+         */
+        const canvas = document.getElementById('telemetryMap');
+        const ctx = canvas.getContext('2d');
+        let pulsePhase = 0;
+
+        function resizeCanvas() {
+            const container = document.getElementById('map-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        function drawMap() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Background Fill
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(0, 0, width, height);
+
+            // Graticule Grid
+            ctx.strokeStyle = '#111827';
+            ctx.lineWidth = 1;
+            for (let lon = 29.0; lon <= 30.5; lon += 0.5) {
+                const { x } = projectLatLon(lon, -3.0, width, height);
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let lat = -2.5; lat >= -4.5; lat -= 0.5) {
+                const { y } = projectLatLon(29.5, lat, width, height);
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            // Lake Tanganyika Approximation Area
+            const p1 = projectLatLon(28.95, -3.28, width, height);
+            const p2 = projectLatLon(29.36, -3.38, width, height);
+            const p3 = projectLatLon(29.34, -4.35, width, height);
+            const p4 = projectLatLon(28.95, -4.55, width, height);
+
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+            ctx.closePath(); ctx.fill();
+
+            // National Border Polygon
+            ctx.beginPath();
+            burundiBorder.forEach(([lon, lat], index) => {
+                const { x, y } = projectLatLon(lon, lat, width, height);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.14)';
+            ctx.fill();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Corridor Lines
+            const corridorPath = ["Bujumbura Hub", "Magara Clinic", "Rumonge Hosp.", "Nyanza-Lac"];
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+            corridorPath.forEach((stName, idx) => {
+                const st = stations.find(s => s.name === stName);
+                const { x, y } = projectLatLon(st.lon, st.lat, width, height);
+                if (idx === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Station Beacons
+            stations.forEach(st => {
+                const { x, y } = projectLatLon(st.lon, st.lat, width, height);
+                st.pixelX = x;
+                st.pixelY = y;
+
+                let color = '#9ca3af'; // Slate for UNLOGGED
+                if (st.status === 'OPTIMAL_COLD_CHAIN') color = '#10b981'; // Emerald
+                if (st.status === 'THERMAL_EXCURSION_ALERT') color = '#ef4444'; // Crimson
+
+                // Pulsing outer ring for alerts
+                if (st.status === 'THERMAL_EXCURSION_ALERT') {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8 + Math.sin(pulsePhase) * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+                    ctx.fill();
+                }
+
+                // Station Circle
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#030712';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Station Label
+                ctx.fillStyle = '#f9fafb';
+                ctx.font = '11px Segoe UI, sans-serif';
+                ctx.fillText(st.name, x + 10, y + 4);
+            });
+
+            pulsePhase += 0.08;
+            requestAnimationFrame(drawMap);
+        }
+
+        /**
+         * 3. INDEXEDDB ENGINE
+         */
+        const DB_NAME = 'BurundiColdChainDB';
+        const STORE_NAME = 'temp_logs';
+        let db = null;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
+                        dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveLog(entry) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.add(entry);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function getAllLogs() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        /**
+         * 4. SECURITY & SANITIZATION (PURPLE TEAM HARDENING)
+         */
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, (tag) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[tag] || tag));
+        }
+
+        async function generateSHA256(dataString) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(dataString);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        /**
+         * 5. APPLICATION LOGIC & INTERACTION
+         */
+        const form = document.getElementById('logger-form');
+        const alertBanner = document.getElementById('alert-banner');
+
+        function showAlert(msg, isError = true) {
+            alertBanner.className = `alert-banner ${isError ? 'error' : 'success'}`;
+            alertBanner.innerText = msg;
+        }
+
+        function clearAlert() {
+            alertBanner.className = 'alert-banner';
+            alertBanner.innerText = '';
+        }
+
+        async function renderLogs() {
+            const logs = await getAllLogs();
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = '';
+
+            // Update station statuses based on latest readings
+            logs.forEach(log => {
+                const targetStation = stations.find(s => s.name === log.station);
+                if (targetStation) {
+                    targetStation.status = log.classification;
+                    targetStation.temp = log.temperature;
+                }
+            });
+
+            // Render table rows (most recent first)
+            [...logs].reverse().forEach(log => {
+                const tr = document.createElement('tr');
+                const pillClass = log.classification === 'OPTIMAL_COLD_CHAIN' ? 'optimal' : 'excursion';
+                
+                tr.innerHTML = `
+                    <td>${new Date(log.timestamp).toISOString().substring(11, 19)}</td>
+                    <td>${escapeHTML(log.station)}</td>
+                    <td>${escapeHTML(log.batchId)}</td>
+                    <td>${log.temperature.toFixed(1)}°C</td>
+                    <td><span class="status-pill ${pillClass}">${escapeHTML(log.classification)}</span></td>
+                    <td>${escapeHTML(log.operatorNote)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAlert();
+
+            const stationVal = document.getElementById('station').value;
+            const batchIdVal = document.getElementById('batchId').value.trim();
+            const tempVal = parseFloat(document.getElementById('temperature').value);
+            const noteVal = document.getElementById('operatorNote').value.trim();
+
+            // Guard 1: Empty Fields
+            if (!stationVal || !batchIdVal || isNaN(tempVal)) {
+                showAlert('DATA INCOMPLETE // All required fields must be specified.');
+                return;
+            }
+
+            // Guard 2: Physical Sensor Bounds
+            if (tempVal < -30.0 || tempVal > 60.0) {
+                showAlert('SENSOR FAULT // OUT OF PHYSICAL BOUNDS (-30.0°C to +60.0°C).');
+                return;
+            }
+
+            // Classification
+            let classification = 'OPTIMAL_COLD_CHAIN';
+            if (tempVal < 2.0 || tempVal > 8.0) {
+                classification = 'THERMAL_EXCURSION_ALERT';
+            }
+
+            const record = {
+                timestamp: Date.now(),
+                station: stationVal,
+                batchId: batchIdVal,
+                temperature: tempVal,
+                classification: classification,
+                operatorNote: noteVal
+            };
+
+            await saveLog(record);
+            await renderLogs();
+
+            if (classification === 'THERMAL_EXCURSION_ALERT') {
+                showAlert(`CRITICAL: Thermal Excursion Recorded (${tempVal.toFixed(1)}°C)! Station beacon alerted.`, true);
+            } else {
+                showAlert('Telemetry entry committed successfully to IndexedDB.', false);
+            }
+
+            form.reset();
+        });
+
+        // Click on map beacon to select station
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            stations.forEach(st => {
+                const dist = Math.hypot(st.pixelX - clickX, st.pixelY - clickY);
+                if (dist <= 15) {
+                    document.getElementById('station').value = st.name;
+                }
+            });
+        });
+
+        // SHA-256 JSON Export
+        document.getElementById('export-btn').addEventListener('click', async () => {
+            const logs = await getAllLogs();
+            if (logs.length === 0) {
+                showAlert('EXPORT REJECTED // No persisted logs available to export.');
+                return;
+            }
+
+            const payloadString = JSON.stringify(logs);
+            const hashHex = await generateSHA256(payloadString);
+
+            const manifest = {
+                metadata: {
+                    platform: "Burundi Cold-Chain Telemetry Node",
+                    exported_at: new Date().toISOString(),
+                    record_count: logs.length
+                },
+                integrity_sha256: hashHex,
+                records: logs
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifest, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `burundi_coldchain_manifest_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        });
+
+        // Network Status Indicator
+        function updateNetworkStatus() {
+            const badge = document.getElementById('network-status');
+            const text = document.getElementById('network-text');
+            if (navigator.onLine) {
+                badge.className = 'status-badge';
+                text.innerText = 'ONLINE';
+            } else {
+                badge.className = 'status-badge offline';
+                text.innerText = 'OFFLINE (PERSISTING LOCAL)';
+            }
+        }
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', async () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            await initDB();
+            await renderLogs();
+            updateNetworkStatus();
+            requestAnimationFrame(drawMap);
+        });
+    </script>
+</body>
+</html>
